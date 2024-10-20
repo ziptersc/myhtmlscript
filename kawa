@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu Kaw</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lobster&display=swap">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #d2b48c;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        h1 {
+            font-size: 42px;
+            color: #4b3832;
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: bold;
+            font-family: 'Lobster', cursive;
+        }
+
+        .coffee-item {
+            display: flex;
+            align-items: center;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            justify-content: space-between;
+        }
+
+        .checkbox-input {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #555;
+            border-radius: 50%;
+            cursor: pointer;
+            margin-right: 15px;
+            position: relative;
+        }
+
+        .checkbox-input:checked::before {
+            content: "";
+            width: 12px;
+            height: 12px;
+            background-color: #555;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+        }
+
+        .added-coffee-indicator {
+            font-size: 20px;
+            margin-right: 10px;
+        }
+
+        .coffee-name {
+            flex-grow: 1;
+            font-size: 18px;
+            color: #4b3832;
+        }
+
+        .options {
+            display: none;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .coffee-size {
+            padding: 5px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .quantity-input {
+            width: 60px;
+            padding: 5px;
+            font-size: 16px;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .price {
+            font-size: 16px;
+            color: #4b3832;
+            margin-right: 10px;
+        }
+
+        .add-button {
+            background-color: #8B4513;
+            color: white;
+            padding: 5px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .remove-button {
+            background-color: red;
+            color: white;
+            padding: 5px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            border: 2px solid #ccc;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1001;
+            display: none;
+            text-align: center;
+            font-family: 'Comic Sans MS', cursive;
+        }
+
+        .dialog button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .dialog .confirm {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .dialog .cancel {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Menu Kaw</h1>
+
+    <div class="coffee-item" data-type="espresso">
+        <input type="checkbox" class="checkbox-input" id="espresso-checkbox">
+        <div class="coffee-name">Espresso</div>
+        <div class="options" id="espresso-options">
+            <select class="coffee-size">
+                <option value="large" data-price="12">Duża: 12 PLN</option>
+                <option value="small" data-price="10">Mała: 10 PLN</option>
+            </select>
+            <input type="number" class="quantity-input" value="1" min="1" max="99">
+            <div class="price">Cena: 12 PLN</div>
+            <button class="add-button">Dodaj</button>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="dialog" id="dialog">
+        <p>Czy Klient Zrezygnował Z Produktu?</p>
+        <button class="confirm" id="confirm">Tak</button>
+        <button class="cancel" id="cancel">Nie</button>
+    </div>
+
+    <script>
+        const addedCoffees = {};
+
+        function toggleOptions(checkboxId, optionsId) {
+            const checkbox = document.getElementById(checkboxId);
+            const options = document.getElementById(optionsId);
+            const dialog = document.getElementById('dialog');
+            const overlay = document.getElementById('overlay');
+            const initialState = options.innerHTML;
+
+            checkbox.addEventListener('change', function() {
+                if (!checkbox.checked) {
+                    dialog.style.display = 'block';
+                    overlay.style.display = 'block';
+
+                    document.getElementById('confirm').onclick = function() {
+                        options.style.display = 'none';
+                        checkbox.checked = false;
+                        dialog.style.display = 'none';
+                        overlay.style.display = 'none';
+
+                        // Reset do początkowych ustawień
+                        options.innerHTML = initialState; 
+                        removeAllAddedCoffees(checkboxId);
+                    };
+
+                    document.getElementById('cancel').onclick = function() {
+                        checkbox.checked = true;
+                        dialog.style.display = 'none';
+                        overlay.style.display = 'none';
+                    };
+                } else {
+                    options.style.display = 'flex';
+                }
+            });
+
+            function addEventListeners(element) {
+                const quantityInput = element.querySelector('.quantity-input');
+                const sizeSelect = element.querySelector('.coffee-size');
+                const priceElement = element.querySelector('.price');
+
+                quantityInput.addEventListener('input', updatePrice);
+                sizeSelect.addEventListener('change', updatePrice);
+
+                quantityInput.addEventListener('blur', function() {
+                    if (parseInt(quantityInput.value) < 1) quantityInput.value = 1;
+                    if (parseInt(quantityInput.value) > 99) quantityInput.value = 99;
+                    updatePrice();
+                });
+
+                function updatePrice() {
+                    const selectedOption = sizeSelect.selectedOptions[0];
+                    const pricePerUnit = parseFloat(selectedOption.getAttribute('data-price'));
+                    const quantity = parseInt(quantityInput.value) || 1;
+                    const totalPrice = pricePerUnit * quantity;
+                    priceElement.textContent = `Cena: ${totalPrice} PLN`;
+                }
+            }
+
+            addEventListeners(options);
+
+            document.querySelector(`#${optionsId} .add-button`).addEventListener('click', function() {
+                if (addedCoffees[checkboxId]) {
+                    alert("Można dodać tylko jedną kawę tego samego rodzaju.");
+                    return;
+                }
+
+                const coffeeItem = checkbox.closest('.coffee-item');
+                const newItem = coffeeItem.cloneNode(true);
+                newItem.querySelector('.add-button').remove();
+                newItem.querySelector('.checkbox-input').remove();
+
+                const indicator = document.createElement('span');
+                indicator.className = 'added-coffee-indicator';
+                indicator.textContent = '┇';
+                newItem.insertBefore(indicator, newItem.firstChild);
+
+                const removeButton = document.createElement('button');
+                removeButton.textContent = 'X';
+                removeButton.className = 'remove-button';
+                newItem.appendChild(removeButton);
+
+                removeButton.addEventListener('click', function() {
+                    newItem.remove();
+                    delete addedCoffees[checkboxId];
+                });
+
+                // Ustawienia domyślne dla dodanej kawy
+                newItem.querySelector('.coffee-size').value = 'large';
+                newItem.querySelector('.quantity-input').value = '1';
+                newItem.querySelector('.price').textContent = 'Cena: 12 PLN';
+
+                coffeeItem.parentNode.insertBefore(newItem, coffeeItem.nextSibling);
+                addedCoffees[checkboxId] = newItem;
+            });
+        }
+
+        function removeAllAddedCoffees(checkboxId) {
+            if (addedCoffees[checkboxId]) {
+                addedCoffees[checkboxId].remove();
+                delete addedCoffees[checkboxId];
+            }
+        }
+
+        toggleOptions('espresso-checkbox', 'espresso-options');
+        // Powtórz dla innych kaw...
+    </script>
+</body>
+</html>
